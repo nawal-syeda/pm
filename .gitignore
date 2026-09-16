@@ -174,3 +174,18 @@ cython_debug/
 
 .DS_Store
 
+# Project build and runtime artifacts
+.uv-cache/
+.next/
+out/
+node_modules/
+test-results/
+playwright-report/
+coverage/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+*.sqlite3
+*.sqlite3-journal
+

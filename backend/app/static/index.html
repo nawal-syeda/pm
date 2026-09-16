@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Project Management MVP</title>
+    <style>
+      body {
+        align-items: center;
+        background: #f7f8fb;
+        color: #032147;
+        display: flex;
+        font-family: Arial, sans-serif;
+        justify-content: center;
+        margin: 0;
+        min-height: 100vh;
+      }
+      main {
+        background: white;
+        border-top: 6px solid #ecad0a;
+        border-radius: 16px;
+        box-shadow: 0 18px 40px rgba(3, 33, 71, 0.12);
+        max-width: 32rem;
+        padding: 2rem;
+        text-align: center;
+      }
+      h1 { color: #032147; }
+      #api-result { color: #753991; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Hello world</h1>
+      <p>FastAPI is serving this static page.</p>
+      <p id="api-result" role="status">Calling the example API...</p>
+    </main>
+    <script>
+      fetch("/api/example")
+        .then((response) => {
+          if (!response.ok) throw new Error("API request failed");
+          return response.json();
+        })
+        .then((data) => {
+          document.querySelector("#api-result").textContent = data.message;
+        })
+        .catch(() => {
+          document.querySelector("#api-result").textContent =
+            "Unable to reach the API.";
+        });
+    </script>
+  </body>
+</html>
+
