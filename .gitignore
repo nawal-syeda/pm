@@ -176,11 +176,13 @@ cython_debug/
 
 # Project build and runtime artifacts
 .uv-cache/
+.npm-cache/
 .next/
 out/
 node_modules/
 test-results/
 playwright-report/
+.playwright-browsers/
 coverage/
 *.db
 *.db-journal

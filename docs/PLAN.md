@@ -71,19 +71,19 @@
 
 ### Tasks
 
-- [ ] Configure Next.js for static export and ensure it does not require a Node.js runtime.
-- [ ] Extend the Docker build with a frontend build stage and copy the static export into the runtime image.
-- [ ] Replace the placeholder page with the existing Kanban frontend at `/` while preserving its current design and behavior.
-- [ ] Configure FastAPI static-file hosting with an SPA-compatible fallback that does not shadow `/api` routes.
-- [ ] Keep frontend API URLs same-origin and configurable only if tests require it.
-- [ ] Add production-loading and static-asset checks.
+- [x] Configure Next.js for static export and ensure it does not require a Node.js runtime.
+- [x] Extend the Docker build with a frontend build stage and copy the static export into the runtime image.
+- [x] Replace the placeholder page with the existing Kanban frontend at `/` while preserving its current design and behavior.
+- [x] Configure FastAPI static-file hosting with an SPA-compatible fallback that does not shadow `/api` routes.
+- [x] Keep frontend API URLs same-origin and configurable only if tests require it.
+- [x] Add production-loading and static-asset checks.
 
 ### Tests
 
-- [ ] Frontend unit tests cover rendering, column rename, card creation/removal, and card reorder/move logic.
-- [ ] Playwright covers board load, card creation, column rename, removal, and drag-and-drop between columns.
-- [ ] Production build test runs lint, Vitest, static export, and backend tests.
-- [ ] Container integration test verifies `/`, Next.js assets, and `/api` are all served by FastAPI.
+- [x] Frontend unit tests cover rendering, column rename, card creation/removal, and card reorder/move logic.
+- [x] Playwright covers board load, card creation, column rename, removal, and drag-and-drop between columns.
+- [x] Production build test runs lint, Vitest, static export, and backend tests.
+- [x] Container integration test verifies `/`, Next.js assets, and `/api` are all served by FastAPI.
 
 ### Success criteria
 
@@ -95,18 +95,18 @@
 
 ### Tasks
 
-- [ ] Add backend login, logout, and current-session endpoints.
-- [ ] Validate only the exact MVP credentials `user` / `password`.
-- [ ] Store an opaque session identifier in an `HttpOnly`, `SameSite=Lax` cookie; set `Secure` only when served over HTTPS.
-- [ ] Keep session state in process for this local single-instance MVP and document that restarting the container signs users out.
-- [ ] Add a frontend login screen, authenticated loading state, logout control, and clear invalid-credential feedback.
-- [ ] Require authentication for Kanban and future AI API routes.
+- [x] Add backend login, logout, and current-session endpoints.
+- [x] Validate only the exact MVP credentials `user` / `password`.
+- [x] Store an opaque session identifier in an `HttpOnly`, `SameSite=Lax` cookie; set `Secure` only when served over HTTPS.
+- [x] Keep session state in process for this local single-instance MVP and document that restarting the container signs users out.
+- [x] Add a frontend login screen, authenticated loading state, logout control, and clear invalid-credential feedback.
+- [x] Require authentication for Kanban and future AI API routes.
 
 ### Tests
 
-- [ ] Backend tests cover valid login, invalid login, current session, logout, and protected-route rejection.
-- [ ] Frontend unit tests cover form submission, validation feedback, authenticated rendering, and logout.
-- [ ] Playwright covers redirect/display behavior for a signed-out user, successful login, failed login, refresh with a valid session, and logout.
+- [x] Backend tests cover valid login, invalid login, current session, logout, and protected-route rejection.
+- [x] Frontend unit tests cover form submission, validation feedback, authenticated rendering, and logout.
+- [x] Playwright covers redirect/display behavior for a signed-out user, successful login, failed login, refresh with a valid session, and logout.
 
 ### Success criteria
 

@@ -24,7 +24,14 @@ On macOS or Linux:
 ./scripts/stop.sh
 ```
 
-The app is available at <http://localhost:8000>. Check backend health at <http://localhost:8000/api/health>.
+The Kanban app is available at <http://localhost:8000>. FastAPI serves the statically exported Next.js frontend and the API from the same container. Check backend health at <http://localhost:8000/api/health>.
+
+Sign in with:
+
+- Username: `user`
+- Password: `password`
+
+Sessions are stored in memory for the local MVP, so restarting the container signs the user out.
 
 ## Test the backend
 
@@ -34,3 +41,13 @@ uv sync
 uv run pytest
 ```
 
+## Test the frontend
+
+```sh
+cd frontend
+npm ci
+npm run lint
+npm run test:unit
+npm run build
+npm run test:e2e
+```

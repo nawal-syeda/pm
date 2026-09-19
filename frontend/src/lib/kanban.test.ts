@@ -22,4 +22,15 @@ describe("moveCard", () => {
     expect(result[0].cardIds).toEqual(["card-2"]);
     expect(result[1].cardIds).toEqual(["card-3", "card-1"]);
   });
+
+  it("leaves columns unchanged for an unknown card", () => {
+    expect(moveCard(baseColumns, "missing", "col-b")).toBe(baseColumns);
+  });
+
+  it("does not mutate the original columns", () => {
+    moveCard(baseColumns, "card-2", "card-3");
+
+    expect(baseColumns[0].cardIds).toEqual(["card-1", "card-2"]);
+    expect(baseColumns[1].cardIds).toEqual(["card-3"]);
+  });
 });

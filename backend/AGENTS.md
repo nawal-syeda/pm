@@ -9,3 +9,5 @@ Run commands from `backend/`:
 - `uv run uvicorn app.main:app --reload` starts the development server.
 
 Keep API routes under `/api` so static frontend routing cannot shadow them. Keep endpoint models typed, business logic small, and tests deterministic. Do not expose secrets in code, responses, logs, or fixtures.
+
+Authentication currently validates the fixed MVP credentials and stores opaque session IDs in process memory. The `pm_session` cookie is `HttpOnly` and `SameSite=Lax`. Keep `/api/health` public and require the session dependency for user data and future AI routes.

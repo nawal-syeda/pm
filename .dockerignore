@@ -1,7 +1,10 @@
 .git
 .env
 .venv
+.npm-cache
+.uv-cache
 **/.venv
+**/.playwright-browsers
 **/__pycache__
 **/.pytest_cache
 **/.next
@@ -13,4 +16,3 @@
 *.db
 *.sqlite
 *.sqlite3
-
