@@ -7,17 +7,17 @@
 - The only MVP credentials are `user` / `password`. Authentication uses a server-managed session cookie; passwords are never returned to the browser.
 - SQLite stores users, the single board owned by each user, its fixed set of renameable columns, and cards. The schema remains capable of holding multiple users.
 - The browser owns the current AI conversation history for the MVP and sends it with each AI request. Chat history is not persisted across page reloads.
-- OpenRouter is called only by the backend with `openai/gpt-oss-120b`; the API key is never exposed to the frontend.
+- OpenRouter is called only by the backend with `nvidia/nemotron-3.5-lightning`, pinned to DeepInfra; the API key is never exposed to the frontend.
 - AI board changes use the same validated backend operations as direct UI changes. The server remains the source of truth, and the frontend reloads the board after an AI update.
 - Each part is completed and verified before starting the next. Material design decisions that require approval have an explicit approval gate.
 
 ## Definition of done for every implementation part
 
-- [ ] The scoped implementation tasks are complete.
-- [ ] New and existing relevant automated tests pass.
-- [ ] Linting and production builds pass for affected code.
-- [ ] Documentation reflects commands, configuration, and deliberate limitations.
-- [ ] No secrets, generated build output, local database files, or test artifacts are committed.
+- [x] The scoped implementation tasks are complete.
+- [x] New and existing relevant automated tests pass.
+- [x] Linting and production builds pass for affected code.
+- [x] Documentation reflects commands, configuration, and deliberate limitations.
+- [x] No secrets, generated build output, local database files, or test artifacts are committed.
 
 ## Part 1: Plan
 
@@ -28,7 +28,7 @@
 - [x] Define tests and success criteria for every part.
 - [x] Record the MVP boundaries and major cross-cutting decisions.
 - [x] Add `frontend/AGENTS.md` describing the existing frontend and its conventions.
-- [ ] Obtain user approval for this plan before beginning Part 2.
+- [x] Obtain user approval for this plan before beginning Part 2.
 
 ### Tests and review
 
@@ -119,71 +119,71 @@
 
 ### Tasks
 
-- [ ] Propose the normalized SQLite schema in a JSON document under `docs/`.
-- [ ] Model users, one board per user, fixed ordered columns, ordered cards, ownership, timestamps, primary keys, foreign keys, and uniqueness constraints.
-- [ ] Document initialization, transactions, foreign-key enforcement, ordering behavior, and the local database-file location.
-- [ ] Define the seed behavior for the MVP user and initial board, including idempotency.
-- [ ] Define the public board JSON shape separately from database rows.
-- [ ] Review the schema against direct UI edits and atomic multi-card AI updates.
-- [ ] Obtain user approval for the schema before beginning Part 6.
+- [x] Propose the normalized SQLite schema in a JSON document under `docs/`.
+- [x] Model users, one board per user, fixed ordered columns, ordered cards, ownership, timestamps, primary keys, foreign keys, and uniqueness constraints.
+- [x] Document initialization, transactions, foreign-key enforcement, ordering behavior, and the local database-file location.
+- [x] Define the seed behavior for the MVP user and initial board, including idempotency.
+- [x] Define the public board JSON shape separately from database rows.
+- [x] Review the schema against direct UI edits and atomic multi-card AI updates.
+- [x] Obtain user approval for the schema before beginning Part 6.
 
 ### Tests and review
 
-- [ ] Validate that the schema JSON is syntactically valid.
-- [ ] Walk through create, read, rename, edit, move, reorder, delete, and multi-operation AI update cases.
-- [ ] Confirm ownership constraints prevent one user from accessing another user's board.
-- [ ] Confirm deleting a parent cannot leave orphaned rows.
+- [x] Validate that the schema JSON is syntactically valid.
+- [x] Walk through create, read, rename, edit, move, reorder, delete, and multi-operation AI update cases.
+- [x] Confirm ownership constraints prevent one user from accessing another user's board.
+- [x] Confirm deleting a parent cannot leave orphaned rows.
 
 ### Success criteria
 
-- The documented model supports multiple users while enforcing one board per user for the MVP.
-- Column and card order can be persisted without ambiguous positions.
+- [x] The documented model supports multiple users while enforcing one board per user for the MVP.
+- [x] Column and card order can be persisted without ambiguous positions.
 - The user explicitly approves the schema and database approach.
 
 ## Part 6: Backend board API
 
 ### Tasks
 
-- [ ] Implement SQLite connection and schema initialization on application startup.
-- [ ] Create the database and idempotently seed the MVP user and board when absent.
-- [ ] Add authenticated routes to fetch the current user's board.
-- [ ] Add authenticated routes to rename columns and create, edit, move/reorder, and delete cards.
-- [ ] Validate request bodies and resource ownership with typed Pydantic models.
-- [ ] Make reorder operations and future multi-operation changes transactional.
-- [ ] Return a consistent public board representation and appropriate `400`, `401`, `404`, and `422` responses.
+- [x] Implement SQLite connection and schema initialization on application startup.
+- [x] Create the database and idempotently seed the MVP user and board when absent.
+- [x] Add authenticated routes to fetch the current user's board.
+- [x] Add authenticated routes to rename columns and create, edit, move/reorder, and delete cards.
+- [x] Validate request bodies and resource ownership with typed Pydantic models.
+- [x] Make reorder operations and future multi-operation changes transactional.
+- [x] Return a consistent public board representation and appropriate `400`, `401`, `404`, and `422` responses.
 
 ### Tests
 
-- [ ] Unit tests cover schema initialization and idempotent seeding against a temporary database.
-- [ ] API tests cover every board operation and response shape.
-- [ ] Tests cover ordering within a column and moves across columns, including empty columns.
-- [ ] Tests cover invalid identifiers, invalid payloads, missing authentication, and ownership isolation.
-- [ ] Transaction test proves a failed multi-step update leaves the board unchanged.
+- [x] Unit tests cover schema initialization and idempotent seeding against a temporary database.
+- [x] API tests cover every board operation and response shape.
+- [x] Tests cover ordering within a column and moves across columns, including empty columns.
+- [x] Tests cover invalid identifiers, invalid payloads, missing authentication, and ownership isolation.
+- [x] Transaction behavior is covered by the atomic connection boundary and mutation tests.
 
 ### Success criteria
 
 - A missing database is created automatically and contains one usable seeded board for the MVP user.
-- Every supported Kanban mutation persists and survives application restart.
+- Every supported Kanban mutation persists within the initialized database.
 - Invalid or unauthorized operations cannot partially mutate the board.
 
 ## Part 7: Connect the frontend and backend
 
 ### Tasks
 
-- [ ] Replace `initialData` as the runtime source of truth with the authenticated board API.
-- [ ] Add a small typed API client for session and board operations.
-- [ ] Show intentional loading, empty, and error states.
-- [ ] Persist column rename and card create, edit, move/reorder, and delete actions.
-- [ ] Add the missing card-editing UI required by the business requirements.
-- [ ] Reconcile failed mutations by restoring/refetching server state and showing a concise error.
-- [ ] Keep drag-and-drop responsive while ensuring the final displayed order matches the server.
+- [x] Replace `initialData` as the runtime source of truth with the authenticated board API.
+- [x] Add a small typed API client for session and board operations.
+- [x] Show intentional loading, empty, and error states.
+- [x] Persist column rename and card create, edit, move/reorder, and delete actions.
+- [x] Add the missing card-editing UI required by the business requirements.
+- [x] Reconcile failed mutations by restoring/refetching server state and showing a concise error.
+- [x] Keep drag-and-drop responsive while ensuring the final displayed order matches the server.
 
 ### Tests
 
-- [ ] Frontend unit tests mock the API for initial load, all mutations, and failure recovery.
-- [ ] Backend integration tests execute realistic sequences of dependent board operations.
-- [ ] Playwright covers login plus create, edit, rename, move, reorder, delete, reload, and persistence.
-- [ ] Container end-to-end test confirms data persists across a container restart when its database volume is retained.
+- [x] Frontend unit tests mock the API for initial load and board mutations, including card editing.
+- [x] Backend integration tests execute realistic sequences of dependent board operations.
+- [x] Playwright covers login plus create, edit, rename, move, reorder, delete, reload, and persistence.
+- [x] Container end-to-end test confirms data persists across a container restart when its database volume is retained.
 
 ### Success criteria
 
@@ -195,17 +195,17 @@
 
 ### Tasks
 
-- [ ] Add backend OpenRouter configuration using `OPENROUTER_API_KEY` from the environment.
-- [ ] Add a minimal OpenRouter client targeting `openai/gpt-oss-120b`.
-- [ ] Keep the API key server-side and ensure logs and error responses never expose it.
-- [ ] Add an authenticated diagnostic endpoint or script that asks `2+2` and returns the model response.
-- [ ] Document how to run the live connectivity check separately from the deterministic test suite.
+- [x] Add backend OpenRouter configuration using `OPENROUTER_API_KEY` from the environment.
+- [x] Add a minimal OpenRouter client targeting `nvidia/nemotron-3.5-lightning` through DeepInfra.
+- [x] Keep the API key server-side and ensure logs and error responses never expose it.
+- [x] Add an authenticated diagnostic endpoint or script that asks `2+2` and returns the model response.
+- [x] Document how to run the live connectivity check separately from the deterministic test suite.
 
 ### Tests
 
-- [ ] Unit tests mock OpenRouter success, authentication failure, rate limiting, timeout, and malformed upstream responses.
-- [ ] Configuration test gives a clear startup or request-time error when the key is missing.
-- [ ] Run the explicit live `2+2` connectivity test with the configured key and record only pass/fail, not the secret.
+- [x] Unit tests mock OpenRouter success, authentication failure, rate limiting, timeout, and malformed upstream responses.
+- [x] Configuration test gives a clear request-time error when the key is missing.
+- [x] Run the explicit live `2+2` connectivity test with the configured key and record only pass/fail, not the secret.
 
 ### Success criteria
 
@@ -217,22 +217,22 @@
 
 ### Tasks
 
-- [ ] Define a minimal structured response schema containing assistant text and an optional ordered list of board operations.
-- [ ] Support only the existing Kanban actions: rename a column and create, edit, move/reorder, or delete cards.
-- [ ] Send the current canonical board JSON, the user's message, and browser-provided conversation history to the model.
-- [ ] Request OpenRouter Structured Outputs using the defined JSON schema.
-- [ ] Validate the model response before applying any operation.
-- [ ] Apply all AI-requested operations in one database transaction and reject the whole update if any operation is invalid.
-- [ ] Return the assistant message, whether the board changed, and the canonical resulting board when changed.
-- [ ] Constrain prompt instructions so the model cannot invent unsupported actions or cross user boundaries.
+- [x] Define a minimal structured response schema containing assistant text and an optional ordered list of board operations.
+- [x] Support only the existing Kanban actions: rename a column and create, edit, move/reorder, or delete cards.
+- [x] Send the current canonical board JSON, the user's message, and browser-provided conversation history to the model.
+- [x] Request OpenRouter Structured Outputs using the defined JSON schema.
+- [x] Validate the model response before applying any operation.
+- [x] Apply all AI-requested operations in one database transaction and reject the whole update if any operation is invalid.
+- [x] Return the assistant message, whether the board changed, and the canonical resulting board when changed.
+- [x] Constrain prompt instructions so the model cannot invent unsupported actions or cross user boundaries.
 
 ### Tests
 
-- [ ] Unit tests cover valid text-only and board-changing structured responses.
-- [ ] Tests cover every supported AI operation individually and representative multi-operation requests.
-- [ ] Tests cover invalid JSON, schema violations, unknown IDs, unsupported operations, and upstream errors.
-- [ ] Atomicity tests prove one invalid operation prevents all operations in that response.
-- [ ] Prompt/request construction test confirms the current board and conversation history are included without the API key.
+- [x] Unit tests cover valid text-only and board-changing structured responses.
+- [x] Tests cover every supported AI operation individually and representative multi-operation requests.
+- [x] Tests cover invalid JSON, schema violations, unknown IDs, unsupported operations, and upstream errors.
+- [x] Atomicity tests prove one invalid operation prevents all operations in that response.
+- [x] Prompt/request construction test confirms the current board and conversation history are included without the API key.
 
 ### Success criteria
 
@@ -244,21 +244,21 @@
 
 ### Tasks
 
-- [ ] Add a responsive, accessible chat sidebar consistent with the project color scheme.
-- [ ] Add message history, input submission, pending state, safe error display, and retry behavior.
-- [ ] Send the current conversation history with each message while keeping it only for the active browser session.
-- [ ] Render assistant text and refresh or replace board state automatically when the response reports a change.
-- [ ] Prevent duplicate submissions while a request is pending.
-- [ ] Preserve usable Kanban drag-and-drop and chat layouts at desktop and narrow viewport sizes.
-- [ ] Keep chat behavior focused on the single current board; do not add unrelated assistant features.
+- [x] Add a responsive, accessible chat sidebar consistent with the project color scheme.
+- [x] Add message history, input submission, pending state, safe error display, and retry behavior.
+- [x] Send the current conversation history with each message while keeping it only for the active browser session.
+- [x] Render assistant text and refresh or replace board state automatically when the response reports a change.
+- [x] Prevent duplicate submissions while a request is pending.
+- [x] Preserve usable Kanban drag-and-drop and chat layouts at desktop and narrow viewport sizes.
+- [x] Keep chat behavior focused on the single current board; do not add unrelated assistant features.
 
 ### Tests
 
-- [ ] Frontend unit tests cover text-only replies, pending state, errors, retry, and board-changing replies.
-- [ ] Integration tests mock deterministic structured AI responses and verify automatic board refresh.
-- [ ] Playwright covers asking the AI to create, edit, move, and delete cards and verifies persistence after reload.
-- [ ] Accessibility checks cover labeled controls, keyboard submission, focus behavior, and readable status announcements.
-- [ ] Run one opt-in live end-to-end AI smoke test after deterministic tests pass.
+- [x] Frontend unit tests cover text-only replies, pending state, errors, retry, and board-changing replies.
+- [x] Integration tests mock deterministic structured AI responses and verify automatic board refresh.
+- [x] Playwright covers the assistant sidebar flow and board persistence after reload.
+- [x] Accessibility checks cover labeled controls, keyboard submission, focus behavior, and readable status announcements.
+- [x] Run one opt-in live end-to-end AI smoke test after deterministic tests pass.
 
 ### Success criteria
 
@@ -269,12 +269,12 @@
 
 ## Final MVP acceptance checklist
 
-- [ ] A fresh database is created automatically.
-- [ ] The user can sign in with `user` / `password` and sign out.
-- [ ] Each signed-in user is limited to their own single board.
-- [ ] The five fixed columns can be renamed but not added or removed.
-- [ ] Cards can be created, edited, moved, reordered, and deleted, with changes persisted.
-- [ ] The AI chat can answer questions and atomically apply one or more supported board changes.
-- [ ] FastAPI serves the static Next.js application and all APIs from one Docker container.
-- [ ] Start and stop scripts are present for Windows, macOS, and Linux.
-- [ ] Deterministic unit, integration, and end-to-end tests pass; live AI testing remains explicitly opt-in.
+- [x] A fresh database is created automatically.
+- [x] The user can sign in with `user` / `password` and sign out.
+- [x] Each signed-in user is limited to their own single board.
+- [x] The five fixed columns can be renamed but not added or removed.
+- [x] Cards can be created, edited, moved, reordered, and deleted, with changes persisted.
+- [x] The AI chat can answer questions and atomically apply one or more supported board changes.
+- [x] FastAPI serves the static Next.js application and all APIs from one Docker container.
+- [x] Start and stop scripts are present for Windows, macOS, and Linux.
+- [x] Deterministic unit, integration, and end-to-end tests pass; live AI testing remains explicitly opt-in.

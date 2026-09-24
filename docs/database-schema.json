@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "database": {
+    "engine": "SQLite",
+    "foreign_keys": true,
+    "tables": {
+      "users": {
+        "purpose": "One row per account, with room for future users.",
+        "columns": {
+          "id": {"type": "TEXT", "required": true},
+          "username": {"type": "TEXT", "required": true},
+          "created_at": {"type": "TEXT", "required": true},
+          "updated_at": {"type": "TEXT", "required": true}
+        },
+        "primary_key": ["id"],
+        "unique": [["username"]],
+        "checks": ["length(trim(username)) > 0"]
+      },
+      "boards": {
+        "purpose": "One board owned by each user for the MVP.",
+        "columns": {
+          "id": {"type": "TEXT", "required": true},
+          "user_id": {"type": "TEXT", "required": true},
+          "name": {"type": "TEXT", "required": true},
+          "created_at": {"type": "TEXT", "required": true},
+          "updated_at": {"type": "TEXT", "required": true}
+        },
+        "primary_key": ["id"],
+        "foreign_keys": [{"columns": ["user_id"], "references": "users(id)", "on_delete": "CASCADE"}],
+        "unique": [["user_id"]],
+        "checks": ["length(trim(name)) > 0"]
+      },
+      "columns": {
+        "purpose": "Fixed board stages whose titles can be renamed and whose order is persisted.",
+        "columns": {
+          "id": {"type": "TEXT", "required": true},
+          "board_id": {"type": "TEXT", "required": true},
+          "title": {"type": "TEXT", "required": true},
+          "position": {"type": "INTEGER", "required": true},
+          "created_at": {"type": "TEXT", "required": true},
+          "updated_at": {"type": "TEXT", "required": true}
+        },
+        "primary_key": ["id"],
+        "foreign_keys": [{"columns": ["board_id"], "references": "boards(id)", "on_delete": "CASCADE"}],
+        "unique": [["board_id", "position"]],
+        "indexes": [["board_id", "position"]],
+        "checks": ["position >= 0", "length(trim(title)) > 0"]
+      },
+      "cards": {
+        "purpose": "Cards belonging to one board column, with persisted order.",
+        "columns": {
+          "id": {"type": "TEXT", "required": true},
+          "column_id": {"type": "TEXT", "required": true},
+          "title": {"type": "TEXT", "required": true},
+          "details": {"type": "TEXT", "required": true},
+          "position": {"type": "INTEGER", "required": true},
+          "created_at": {"type": "TEXT", "required": true},
+          "updated_at": {"type": "TEXT", "required": true}
+        },
+        "primary_key": ["id"],
+        "foreign_keys": [{"columns": ["column_id"], "references": "columns(id)", "on_delete": "CASCADE"}],
+        "unique": [["column_id", "position"]],
+        "indexes": [["column_id", "position"]],
+        "checks": ["position >= 0", "length(trim(title)) > 0"]
+      }
+    },
+    "relationships": [
+      "users 1--1 boards for the MVP",
+      "boards 1--many columns",
+      "columns 1--many cards"
+    ]
+  },
+  "seed": {
+    "idempotent": true,
+    "user": {"username": "user"},
+    "board": {"name": "My Project"},
+    "columns": ["Backlog", "Discovery", "In Progress", "Review", "Done"],
+    "cards": "The existing demo cards from frontend/src/lib/kanban.ts"
+  },
+  "public_board_shape": {
+    "id": "board-id",
+    "name": "My Project",
+    "columns": [
+      {
+        "id": "column-id",
+        "title": "Backlog",
+        "position": 0,
+        "cards": [
+          {
+            "id": "card-id",
+            "title": "Example card",
+            "details": "Example details",
+            "position": 0
+          }
+        ]
+      }
+    ],
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  "not_persisted": [
+    "Authentication sessions remain in process memory for the local MVP.",
+    "AI conversation history remains in the active browser session for the MVP."
+  ]
+}

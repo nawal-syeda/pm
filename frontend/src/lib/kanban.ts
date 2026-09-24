@@ -15,6 +15,28 @@ export type BoardData = {
   cards: Record<string, Card>;
 };
 
+import type { Board } from "@/lib/api";
+
+export const fromApiBoard = (board: Board): BoardData => ({
+  columns: board.columns.map((column) => ({
+    id: column.id,
+    title: column.title,
+    cardIds: column.cards
+      .slice()
+      .sort((left, right) => left.position - right.position)
+      .map((card) => card.id),
+  })),
+  cards: Object.fromEntries(
+    board.columns.flatMap((column) =>
+      column.cards.map((card) => [card.id, {
+        id: card.id,
+        title: card.title,
+        details: card.details,
+      }])
+    )
+  ),
+});
+
 export const initialData: BoardData = {
   columns: [
     { id: "col-backlog", title: "Backlog", cardIds: ["card-1", "card-2"] },

@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $imageName = "pm-mvp:local"
 $containerName = "pm-mvp"
+$dataVolumeName = "pm-mvp-data"
 
 docker build --tag $imageName $projectRoot
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -15,7 +16,8 @@ if ($existingContainer) {
 $dockerArguments = @(
     "run", "--detach",
     "--name", $containerName,
-    "--publish", "8000:8000"
+    "--publish", "8000:8000",
+    "--volume", "${dataVolumeName}:/app/backend/data"
 )
 
 $envFile = Join-Path $projectRoot ".env"

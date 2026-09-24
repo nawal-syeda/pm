@@ -4,7 +4,7 @@
 
 This directory contains the Kanban frontend. It uses Next.js 16 with the App Router, React 19, TypeScript, Tailwind CSS 4, and `dnd-kit`. It is configured as a static export that FastAPI serves in the production container. The current board state is held only in React memory and resets on reload.
 
-The app requires the MVP login before rendering one board with five fixed columns. A user can log out, rename columns, create and remove cards, and drag cards within or between columns. Card editing, database persistence, board API calls, and AI chat have not been implemented yet.
+The app requires the MVP login before rendering one board with five fixed columns. A user can log out, rename columns, create, edit, move, and remove cards, and use the AI assistant sidebar for the current board. Board data is persisted through the backend API; chat history remains in browser memory for the active session.
 
 ## Structure
 

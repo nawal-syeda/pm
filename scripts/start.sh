@@ -5,6 +5,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PROJECT_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 IMAGE_NAME="pm-mvp:local"
 CONTAINER_NAME="pm-mvp"
+DATA_VOLUME_NAME="pm-mvp-data"
 
 docker build --tag "$IMAGE_NAME" "$PROJECT_ROOT"
 
@@ -16,12 +17,14 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
   docker run --detach \
     --name "$CONTAINER_NAME" \
     --publish 8000:8000 \
+    --volume "$DATA_VOLUME_NAME:/app/backend/data" \
     --env-file "$PROJECT_ROOT/.env" \
     "$IMAGE_NAME"
 else
   docker run --detach \
     --name "$CONTAINER_NAME" \
     --publish 8000:8000 \
+    --volume "$DATA_VOLUME_NAME:/app/backend/data" \
     "$IMAGE_NAME"
 fi
 

@@ -5,6 +5,12 @@ import { getCurrentUser, login, logout } from "@/lib/api";
 
 vi.mock("@/lib/api", () => ({
   getCurrentUser: vi.fn(),
+  getBoard: vi.fn().mockResolvedValue({
+    id: "board-1",
+    name: "Product Roadmap",
+    updated_at: "2026-01-01T00:00:00Z",
+    columns: [],
+  }),
   login: vi.fn(),
   logout: vi.fn(),
 }));

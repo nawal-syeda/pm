@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { AIChat } from "@/components/AIChat";
 import { LoginForm } from "@/components/LoginForm";
 import { getCurrentUser, logout, type User } from "@/lib/api";
 
@@ -10,6 +11,7 @@ export const AuthenticatedApp = () => {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionError, setSessionError] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [boardRefreshToken, setBoardRefreshToken] = useState(0);
 
   const checkSession = async () => {
     setIsCheckingSession(true);
@@ -88,8 +90,8 @@ export const AuthenticatedApp = () => {
   }
 
   return (
-    <div className="relative">
-      <div className="absolute right-6 top-4 z-10 flex items-center gap-3 rounded-full border border-[var(--stroke)] bg-white/90 px-4 py-2 text-xs shadow-sm backdrop-blur">
+    <div className="relative lg:pr-[380px]">
+      <div className="absolute right-6 top-4 z-30 flex items-center gap-3 rounded-full border border-[var(--stroke)] bg-white/90 px-4 py-2 text-xs shadow-sm backdrop-blur lg:right-[400px]">
         <span className="font-semibold text-[var(--gray-text)]">
           Signed in as {user.username}
         </span>
@@ -102,7 +104,8 @@ export const AuthenticatedApp = () => {
           {isLoggingOut ? "Signing out..." : "Log out"}
         </button>
       </div>
-      <KanbanBoard />
+      <KanbanBoard refreshToken={boardRefreshToken} />
+      <AIChat onBoardChanged={() => setBoardRefreshToken((value) => value + 1)} />
     </div>
   );
 };
