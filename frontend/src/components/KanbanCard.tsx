@@ -22,6 +22,10 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
   const [title, setTitle] = useState(card.title);
   const [details, setDetails] = useState(card.details);
 
+  // While editing, the card must not be draggable: the listeners sit on the
+  // whole article, so they would otherwise hijack text selection in the inputs.
+  const dragHandlers = isEditing ? {} : { ...attributes, ...listeners };
+
   const save = () => {
     if (!title.trim()) return;
     onEdit(card.id, title.trim(), details.trim());
@@ -37,8 +41,7 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
         "transition-all duration-150",
         isDragging && "opacity-60 shadow-[0_18px_32px_rgba(3,33,71,0.16)]"
       )}
-      {...attributes}
-      {...listeners}
+      {...dragHandlers}
       data-testid={`card-${card.id}`}
     >
       {isEditing ? (

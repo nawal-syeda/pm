@@ -5,6 +5,7 @@ description = "FastAPI backend for the Project Management MVP"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi",
+    "pydantic",
     "uvicorn[standard]",
 ]
 

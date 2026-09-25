@@ -2,7 +2,6 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { getBoard, createCard, deleteCard, renameColumn, updateCard } from "@/lib/api";
-import { initialData } from "@/lib/kanban";
 
 vi.mock("@/lib/api", () => ({
   getBoard: vi.fn(),
@@ -13,16 +12,37 @@ vi.mock("@/lib/api", () => ({
   moveCard: vi.fn(),
 }));
 
+const COLUMNS: [string, string, string[]][] = [
+  ["col-backlog", "Backlog", ["card-1", "card-2"]],
+  ["col-discovery", "Discovery", ["card-3"]],
+  ["col-progress", "In Progress", ["card-4", "card-5"]],
+  ["col-review", "Review", ["card-6"]],
+  ["col-done", "Done", ["card-7", "card-8"]],
+];
+
+const CARD_TITLES: Record<string, string> = {
+  "card-1": "Align roadmap themes",
+  "card-2": "Gather customer signals",
+  "card-3": "Prototype analytics view",
+  "card-4": "Refine status language",
+  "card-5": "Design card layout",
+  "card-6": "QA micro-interactions",
+  "card-7": "Ship marketing page",
+  "card-8": "Close onboarding sprint",
+};
+
 const apiBoard = () => ({
   id: "board-1",
   name: "Product Roadmap",
   updated_at: "2026-01-01T00:00:00Z",
-  columns: initialData.columns.map((column, position) => ({
-    id: column.id,
-    title: column.title,
+  columns: COLUMNS.map(([id, title, cardIds], position) => ({
+    id,
+    title,
     position,
-    cards: column.cardIds.map((id, cardPosition) => ({
-      ...initialData.cards[id],
+    cards: cardIds.map((cardId, cardPosition) => ({
+      id: cardId,
+      title: CARD_TITLES[cardId],
+      details: `Details for ${cardId}`,
       position: cardPosition,
     })),
   })),
@@ -52,6 +72,35 @@ describe("KanbanBoard", () => {
     expect(input).toHaveValue("New Name");
     await userEvent.tab();
     expect(renameColumn).toHaveBeenCalledWith("col-backlog", "New Name");
+  });
+
+  it("does not rename a column when the field is only focused and blurred", async () => {
+    render(<KanbanBoard />);
+    const column = (await screen.findAllByTestId(/column-/i))[0];
+    const input = within(column).getByLabelText("Column title");
+    await userEvent.click(input);
+    await userEvent.tab();
+    expect(renameColumn).not.toHaveBeenCalled();
+  });
+
+  it("restores the column title when the field is blurred empty", async () => {
+    render(<KanbanBoard />);
+    const column = (await screen.findAllByTestId(/column-/i))[0];
+    const input = within(column).getByLabelText("Column title");
+    await userEvent.clear(input);
+    await userEvent.tab();
+    expect(renameColumn).not.toHaveBeenCalled();
+    expect(input).toHaveValue("Backlog");
+  });
+
+  it("stops the card acting as a drag handle while it is being edited", async () => {
+    render(<KanbanBoard />);
+    const column = (await screen.findAllByTestId(/column-/i))[0];
+    const card = within(column).getByTestId("card-card-1");
+    expect(card).toHaveAttribute("role", "button");
+
+    await userEvent.click(within(column).getByRole("button", { name: /edit align roadmap themes/i }));
+    expect(within(column).getByTestId("card-card-1")).not.toHaveAttribute("role", "button");
   });
 
   it("adds and removes a card", async () => {

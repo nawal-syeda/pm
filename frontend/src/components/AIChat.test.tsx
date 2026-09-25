@@ -58,6 +58,25 @@ describe("AIChat", () => {
     expect(mockedAIChat).toHaveBeenCalledTimes(2);
   });
 
+  it("never replays an empty assistant message as history after a failure", async () => {
+    mockedAIChat
+      .mockRejectedValueOnce(new Error("Temporary AI failure"))
+      .mockResolvedValueOnce({ assistant_message: "Second reply", board_changed: false, board: null });
+    render(<AIChat onBoardChanged={vi.fn()} />);
+    const input = screen.getByLabelText("Message the AI assistant");
+
+    await userEvent.type(input, "First");
+    await userEvent.click(screen.getByRole("button", { name: "Send message" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Temporary AI failure");
+
+    await userEvent.type(input, "Second");
+    await userEvent.click(screen.getByRole("button", { name: "Send message" }));
+    expect(await screen.findByText("Second reply")).toBeVisible();
+
+    const history = mockedAIChat.mock.calls[1][1];
+    expect(history.every((message) => message.content.trim().length > 0)).toBe(true);
+  });
+
   it("notifies the board when the assistant changes it", async () => {
     const onBoardChanged = vi.fn();
     mockedAIChat.mockResolvedValue({

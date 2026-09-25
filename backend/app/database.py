@@ -68,13 +68,10 @@ def utc_now() -> str:
 def connect() -> sqlite3.Connection:
     path = database_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    connection.executescript(SCHEMA)
-    seed(connection)
-    connection.commit()
-    return connection
+    db = sqlite3.connect(path)
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA foreign_keys = ON")
+    return db
 
 
 @contextmanager
@@ -85,6 +82,13 @@ def connection() -> Iterator[sqlite3.Connection]:
         db.commit()
     finally:
         db.close()
+
+
+def initialise() -> None:
+    """Create the schema and seed the default board. Runs once at startup."""
+    with connection() as db:
+        db.executescript(SCHEMA)
+        seed(db)
 
 
 def seed(db: sqlite3.Connection) -> None:
@@ -116,10 +120,10 @@ def seed(db: sqlite3.Connection) -> None:
             'INSERT INTO "columns" (id, board_id, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
             (column_id, board_id, title, position, now, now),
         )
-    for title, details, column_position, position in SEED_CARDS:
+    for index, (title, details, column_position, position) in enumerate(SEED_CARDS):
         db.execute(
             "INSERT INTO cards (id, column_id, title, details, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (f"card-{len(db.execute('SELECT id FROM cards').fetchall()) + 1}", column_ids[column_position], title, details, position, now, now),
+            (f"card-{index + 1}", column_ids[column_position], title, details, position, now, now),
         )
 
 

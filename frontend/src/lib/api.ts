@@ -34,6 +34,14 @@ export type AIChatResponse = {
   board: Board | null;
 };
 
+// FastAPI returns a string detail for handled errors but an array of validation
+// objects for a 422, which would otherwise surface to the user as "[object Object]".
+const errorMessage = (body: { detail?: unknown } | null): string => {
+  if (typeof body?.detail === "string") return body.detail;
+  if (Array.isArray(body?.detail)) return "The server rejected that request.";
+  return "Request failed";
+};
+
 const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
   const response = await fetch(path, {
     ...options,
@@ -45,10 +53,7 @@ const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
   });
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      detail?: string;
-    } | null;
-    throw new Error(body?.detail ?? "Request failed");
+    throw new Error(errorMessage(await response.json().catch(() => null)));
   }
 
   return response.json() as Promise<T>;
@@ -126,8 +131,7 @@ export const aiChatStream = async (
     body: JSON.stringify({ message, history }),
   });
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { detail?: string } | null;
-    throw new Error(body?.detail ?? "Request failed");
+    throw new Error(errorMessage(await response.json().catch(() => null)));
   }
   if (!response.body) throw new Error("Streaming is not available in this browser");
 

@@ -34,6 +34,9 @@ export const KanbanBoard = ({ refreshToken = 0 }: KanbanBoardProps) => {
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState(false);
 
+  // Used to resync after a failed mutation. The effect below deliberately
+  // repeats this inline: react-hooks/set-state-in-effect forbids calling a
+  // setState-bearing helper directly from an effect body.
   const loadBoard = useCallback(async () => {
     setIsLoading(true);
     setError("");
@@ -114,7 +117,7 @@ export const KanbanBoard = ({ refreshToken = 0 }: KanbanBoardProps) => {
     void applyMutation(() => requestBoard(updateCard(cardId, { title, details })));
   };
 
-  const handleDeleteCard = (columnId: string, cardId: string) => {
+  const handleDeleteCard = (cardId: string) => {
     void applyMutation(() => requestBoard(deleteCard(cardId)));
   };
 

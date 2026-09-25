@@ -98,6 +98,32 @@ def test_invalid_resources_and_payloads_are_rejected(client: TestClient) -> None
     ).status_code == 422
 
 
+def test_whitespace_only_titles_are_rejected_without_touching_the_board(
+    client: TestClient,
+) -> None:
+    before = client.get("/api/board").json()
+
+    assert client.patch("/api/board/columns/col-1", json={"title": "   "}).status_code == 422
+    assert client.post(
+        "/api/board/columns/col-1/cards", json={"title": "  "}
+    ).status_code == 422
+    assert client.patch("/api/board/cards/card-1", json={"title": "	"}).status_code == 422
+    assert client.get("/api/board").json() == before
+
+
+def test_titles_and_details_are_stored_stripped(client: TestClient) -> None:
+    renamed = client.patch("/api/board/columns/col-1", json={"title": "  Ideas  "})
+    created = client.post(
+        "/api/board/columns/col-1/cards",
+        json={"title": "  Padded title  ", "details": "  Padded details  "},
+    )
+
+    assert renamed.json()["columns"][0]["title"] == "Ideas"
+    card = created.json()["columns"][0]["cards"][-1]
+    assert card["title"] == "Padded title"
+    assert card["details"] == "Padded details"
+
+
 def test_reorders_cards_within_a_column(client: TestClient) -> None:
     before = client.get("/api/board").json()
     backlog = before["columns"][0]

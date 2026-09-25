@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { AIChat } from "@/components/AIChat";
 import { LoginForm } from "@/components/LoginForm";
@@ -13,7 +13,9 @@ export const AuthenticatedApp = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [boardRefreshToken, setBoardRefreshToken] = useState(0);
 
-  const checkSession = async () => {
+  // See KanbanBoard: the mount effect repeats this inline because
+  // react-hooks/set-state-in-effect forbids calling it from an effect body.
+  const checkSession = useCallback(async () => {
     setIsCheckingSession(true);
     setSessionError("");
     try {
@@ -25,7 +27,7 @@ export const AuthenticatedApp = () => {
     } finally {
       setIsCheckingSession(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     let isActive = true;

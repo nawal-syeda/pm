@@ -1,6 +1,6 @@
+import json
 import os
 import secrets
-import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
@@ -12,7 +12,9 @@ from starlette.responses import Response as StarletteResponse, StreamingResponse
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 
-from app.database import connection, new_id, public_board, utc_now
+from app import board as board_ops
+from app.board import Details, Title, owned_card, owned_column
+from app.database import connection, initialise, public_board
 from app.ai_board import (
     AIChatRequest,
     AIOperationError,
@@ -22,10 +24,10 @@ from app.ai_board import (
 )
 from app.openrouter import MODEL, OpenRouterError, ask_two_plus_two
 
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    with connection():
-        pass
+    initialise()
     yield
 
 
@@ -44,17 +46,17 @@ class LoginRequest(BaseModel):
 
 
 class ColumnUpdate(BaseModel):
-    title: str = Field(min_length=1)
+    title: Title
 
 
 class CardCreate(BaseModel):
-    title: str = Field(min_length=1)
-    details: str = ""
+    title: Title
+    details: Details = ""
 
 
 class CardUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=1)
-    details: str | None = None
+    title: Title | None = None
+    details: Details | None = None
 
 
 class CardMove(BaseModel):
@@ -72,14 +74,32 @@ def require_user(
 
 
 class FrontendFiles(StaticFiles):
+    """Serves the exported Next.js site, falling back to index.html for SPA routes.
+
+    Only unknown /api paths reach this mount, because the real API routes are
+    matched first. They are refused here so they fail as a JSON 404 rather than
+    being answered with the SPA shell or the exported 404.html page.
+    """
+
+    def _is_spa_route(self, path: str) -> bool:
+        return not Path(path).suffix
+
+    def _is_api_path(self, path: str) -> bool:
+        # Starlette hands this an OS-native relative path, so it is separated by
+        # backslashes on Windows and slashes elsewhere. Path.parts handles both.
+        parts = Path(path).parts
+        return bool(parts) and parts[0] == "api"
+
     async def get_response(self, path: str, scope: Scope) -> StarletteResponse:
+        if self._is_api_path(path):
+            raise StarletteHTTPException(status_code=404, detail="Not Found")
         try:
             response = await super().get_response(path, scope)
         except StarletteHTTPException as error:
-            if error.status_code == 404 and not Path(path).suffix:
+            if error.status_code == 404 and self._is_spa_route(path):
                 return await super().get_response("index.html", scope)
             raise
-        if response.status_code == 404 and not Path(path).suffix:
+        if response.status_code == 404 and self._is_spa_route(path):
             return await super().get_response("index.html", scope)
         return response
 
@@ -87,11 +107,6 @@ class FrontendFiles(StaticFiles):
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.get("/api/example")
-def example(_username: Annotated[str, Depends(require_user)]) -> dict[str, str]:
-    return {"message": "Hello from FastAPI"}
 
 
 @app.post("/api/ai/diagnostic")
@@ -112,7 +127,6 @@ def ai_chat(
     try:
         with connection() as db:
             ai_response = answer_board_request(db, username, request)
-        with connection() as db:
             board = apply_ai_response(db, username, ai_response)
             return {
                 "assistant_message": ai_response.assistant_message,
@@ -130,16 +144,30 @@ def ai_chat_stream(
     request: AIChatRequest,
     username: Annotated[str, Depends(require_user)],
 ) -> StreamingResponse:
+    def event(payload: dict) -> str:
+        return f"data: {json.dumps(payload)}\n\n"
+
     def events():
         try:
-            for event in stream_board_request(username, request):
-                if event[0] == "delta":
-                    yield f"data: {json.dumps({'type': 'delta', 'content': event[1]})}\n\n"
+            for message in stream_board_request(username, request):
+                if message[0] == "delta":
+                    yield event({"type": "delta", "content": message[1]})
                 else:
-                    response, board = event[1], event[2]
-                    yield f"data: {json.dumps({'type': 'done', 'assistant_message': response.assistant_message, 'board_changed': board is not None, 'board': board})}\n\n"
+                    response, board = message[1], message[2]
+                    yield event(
+                        {
+                            "type": "done",
+                            "assistant_message": response.assistant_message,
+                            "board_changed": board is not None,
+                            "board": board,
+                        }
+                    )
         except (AIOperationError, OpenRouterError) as error:
-            yield f"data: {json.dumps({'type': 'error', 'detail': str(error)})}\n\n"
+            yield event({"type": "error", "detail": str(error)})
+        except Exception:
+            # The response has already started, so this is the only way to tell
+            # the browser that the stream failed instead of silently truncating.
+            yield event({"type": "error", "detail": "The AI request failed unexpectedly."})
 
     return StreamingResponse(
         events(),
@@ -154,13 +182,6 @@ def get_board(username: Annotated[str, Depends(require_user)]) -> dict:
         return public_board(db, username)
 
 
-def owned_card(db, username: str, card_id: str):
-    return db.execute(
-        'SELECT cards.* FROM cards JOIN "columns" ON "columns".id = cards.column_id JOIN boards ON boards.id = "columns".board_id JOIN users ON users.id = boards.user_id WHERE cards.id = ? AND users.username = ?',
-        (card_id, username),
-    ).fetchone()
-
-
 @app.patch("/api/board/columns/{column_id}")
 def rename_column(
     column_id: str,
@@ -168,12 +189,9 @@ def rename_column(
     username: Annotated[str, Depends(require_user)],
 ) -> dict:
     with connection() as db:
-        result = db.execute(
-            'UPDATE "columns" SET title = ?, updated_at = ? WHERE id = ? AND board_id IN (SELECT boards.id FROM boards JOIN users ON users.id = boards.user_id WHERE users.username = ?)',
-            (payload.title.strip(), utc_now(), column_id, username),
-        )
-        if result.rowcount != 1 or not payload.title.strip():
+        if owned_column(db, username, column_id) is None:
             raise HTTPException(status_code=404, detail="Column not found")
+        board_ops.rename_column(db, column_id, payload.title)
         return public_board(db, username)
 
 
@@ -184,18 +202,9 @@ def create_card(
     username: Annotated[str, Depends(require_user)],
 ) -> dict:
     with connection() as db:
-        column = db.execute(
-            'SELECT "columns".* FROM "columns" JOIN boards ON boards.id = "columns".board_id JOIN users ON users.id = boards.user_id WHERE "columns".id = ? AND users.username = ?',
-            (column_id, username),
-        ).fetchone()
-        if column is None or not payload.title.strip():
+        if owned_column(db, username, column_id) is None:
             raise HTTPException(status_code=404, detail="Column not found")
-        position = db.execute("SELECT COUNT(*) AS count FROM cards WHERE column_id = ?", (column_id,)).fetchone()["count"]
-        now = utc_now()
-        db.execute(
-            "INSERT INTO cards (id, column_id, title, details, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (new_id("card"), column_id, payload.title.strip(), payload.details.strip(), position, now, now),
-        )
+        board_ops.create_card(db, column_id, payload.title, payload.details)
         return public_board(db, username)
 
 
@@ -208,17 +217,9 @@ def update_card(
     if payload.title is None and payload.details is None:
         raise HTTPException(status_code=422, detail="At least one card field is required")
     with connection() as db:
-        card = owned_card(db, username, card_id)
-        if card is None:
+        if owned_card(db, username, card_id) is None:
             raise HTTPException(status_code=404, detail="Card not found")
-        title = payload.title.strip() if payload.title is not None else card["title"]
-        if not title:
-            raise HTTPException(status_code=422, detail="Card title cannot be empty")
-        details = payload.details if payload.details is not None else card["details"]
-        db.execute(
-            "UPDATE cards SET title = ?, details = ?, updated_at = ? WHERE id = ?",
-            (title, details.strip(), utc_now(), card_id),
-        )
+        board_ops.update_card(db, card_id, payload.title, payload.details)
         return public_board(db, username)
 
 
@@ -229,31 +230,9 @@ def move_card(
     username: Annotated[str, Depends(require_user)],
 ) -> dict:
     with connection() as db:
-        card = owned_card(db, username, card_id)
-        target = db.execute(
-            'SELECT "columns".* FROM "columns" JOIN boards ON boards.id = "columns".board_id JOIN users ON users.id = boards.user_id WHERE "columns".id = ? AND users.username = ?',
-            (payload.column_id, username),
-        ).fetchone()
-        if card is None or target is None:
+        if owned_card(db, username, card_id) is None or owned_column(db, username, payload.column_id) is None:
             raise HTTPException(status_code=404, detail="Card or target column not found")
-        source_id = card["column_id"]
-        target_cards = [row["id"] for row in db.execute("SELECT id FROM cards WHERE column_id = ? ORDER BY position", (payload.column_id,)).fetchall() if row["id"] != card_id]
-        insert_at = min(payload.position, len(target_cards))
-        target_cards.insert(insert_at, card_id)
-        db.execute("UPDATE cards SET position = position + 1000000 WHERE column_id IN (?, ?)", (source_id, payload.column_id))
-        staging_position = db.execute(
-            "SELECT COALESCE(MAX(position), 0) + 1 FROM cards WHERE column_id = ?",
-            (payload.column_id,),
-        ).fetchone()[0]
-        db.execute(
-            "UPDATE cards SET column_id = ?, position = ?, updated_at = ? WHERE id = ?",
-            (payload.column_id, staging_position, utc_now(), card_id),
-        )
-        for position, moved_id in enumerate(target_cards):
-            db.execute("UPDATE cards SET position = ? WHERE id = ?", (position, moved_id))
-        if source_id != payload.column_id:
-            for position, row in enumerate(db.execute("SELECT id FROM cards WHERE column_id = ? AND id != ? ORDER BY position", (source_id, card_id)).fetchall()):
-                db.execute("UPDATE cards SET position = ? WHERE id = ?", (position, row["id"]))
+        board_ops.move_card(db, card_id, payload.column_id, payload.position)
         return public_board(db, username)
 
 
@@ -263,13 +242,9 @@ def delete_card(
     username: Annotated[str, Depends(require_user)],
 ) -> dict:
     with connection() as db:
-        card = owned_card(db, username, card_id)
-        if card is None:
+        if owned_card(db, username, card_id) is None:
             raise HTTPException(status_code=404, detail="Card not found")
-        column_id = card["column_id"]
-        db.execute("DELETE FROM cards WHERE id = ?", (card_id,))
-        for position, row in enumerate(db.execute("SELECT id FROM cards WHERE column_id = ? ORDER BY position", (column_id,)).fetchall()):
-            db.execute("UPDATE cards SET position = ? WHERE id = ?", (position, row["id"]))
+        board_ops.delete_card(db, card_id)
         return public_board(db, username)
 
 

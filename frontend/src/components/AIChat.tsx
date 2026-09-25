@@ -19,27 +19,15 @@ export const AIChat = ({ onBoardChanged }: AIChatProps) => {
   const [error, setError] = useState("");
   const [failedMessage, setFailedMessage] = useState<FailedMessage | null>(null);
 
-  const sendMessage = async (
-    message: string,
-    history: AIChatMessage[],
-    showUserMessage: boolean
-  ) => {
+  const sendMessage = async (message: string, history: AIChatMessage[]) => {
     setIsPending(true);
     setError("");
     setFailedMessage(null);
-    if (showUserMessage) {
-      setMessages((current) => [
-        ...current,
-        { role: "user", content: message },
-        { role: "assistant", content: "" },
-      ]);
-    } else {
-      setMessages((current) => {
-        const next = [...current];
-        if (next.at(-1)?.role === "assistant") next[next.length - 1] = { role: "assistant", content: "" };
-        return next;
-      });
-    }
+    setMessages((current) => [
+      ...current,
+      { role: "user", content: message },
+      { role: "assistant", content: "" },
+    ]);
     try {
       const response = await aiChatStream(message, history, (delta) => {
         setMessages((current) => {
@@ -64,6 +52,9 @@ export const AIChat = ({ onBoardChanged }: AIChatProps) => {
           : "Unable to contact the AI assistant"
       );
       setFailedMessage({ message, history });
+      // Drop the failed exchange. An empty assistant bubble left in the
+      // transcript would be replayed as history and rejected by the server.
+      setMessages((current) => current.slice(0, -2));
     } finally {
       setIsPending(false);
     }
@@ -74,12 +65,12 @@ export const AIChat = ({ onBoardChanged }: AIChatProps) => {
     const message = draft.trim();
     if (!message || isPending) return;
     setDraft("");
-    void sendMessage(message, messages, true);
+    void sendMessage(message, messages);
   };
 
   const handleRetry = () => {
     if (!failedMessage || isPending) return;
-    void sendMessage(failedMessage.message, failedMessage.history, false);
+    void sendMessage(failedMessage.message, failedMessage.history);
   };
 
   return (

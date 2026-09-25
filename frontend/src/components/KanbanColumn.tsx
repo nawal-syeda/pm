@@ -1,7 +1,7 @@
-import { useState } from "react";
 import clsx from "clsx";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import type { FocusEvent } from "react";
 import type { Card, Column } from "@/lib/kanban";
 import { KanbanCard } from "@/components/KanbanCard";
 import { NewCardForm } from "@/components/NewCardForm";
@@ -11,7 +11,7 @@ type KanbanColumnProps = {
   cards: Card[];
   onRename: (columnId: string, title: string) => void;
   onAddCard: (columnId: string, title: string, details: string) => void;
-  onDeleteCard: (columnId: string, cardId: string) => void;
+  onDeleteCard: (cardId: string) => void;
   onEditCard: (cardId: string, title: string, details: string) => void;
 };
 
@@ -24,7 +24,18 @@ export const KanbanColumn = ({
   onEditCard,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
-  const [title, setTitle] = useState(column.title);
+
+  // The input is uncontrolled and keyed on the server title, so the value is
+  // read from the DOM on blur. Keeping it in state let a stale copy overwrite
+  // renames that arrived from the AI assistant.
+  const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
+    const next = event.target.value.trim();
+    if (!next) {
+      event.target.value = column.title;
+      return;
+    }
+    if (next !== column.title) onRename(column.id, next);
+  };
 
   return (
     <section
@@ -46,8 +57,7 @@ export const KanbanColumn = ({
           <input
             key={`${column.id}-${column.title}`}
             defaultValue={column.title}
-            onChange={(event) => setTitle(event.target.value)}
-            onBlur={() => onRename(column.id, title)}
+            onBlur={handleBlur}
             className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
             aria-label="Column title"
           />
@@ -59,7 +69,7 @@ export const KanbanColumn = ({
             <KanbanCard
               key={card.id}
               card={card}
-              onDelete={(cardId) => onDeleteCard(column.id, cardId)}
+              onDelete={onDeleteCard}
               onEdit={onEditCard}
             />
           ))}
